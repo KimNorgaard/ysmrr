@@ -6,6 +6,10 @@ import "github.com/fatih/color"
 // Color represents an item in the color map.
 type Color int
 
+type ColorT interface {
+	Color | color.Attribute
+}
+
 const (
 	// NoColor will bypass the color lookup causing characters to render
 	// with the current default of the terminal.
@@ -36,13 +40,19 @@ var lookup = map[Color]color.Attribute{
 }
 
 // GetColor returns a color.Color for the given color.
-func GetColor(c Color) *color.Color {
-	if c == 0 {
+func GetColor[T any](c interface{}) *color.Color {
+	if value, ok := c.(int); ok && value == 0 {
 		return nil
 	}
 
-	if val, ok := lookup[c]; ok {
-		return color.New(val)
+	if value, ok := c.(Color); ok {
+		if val, ok := lookup[value]; ok {
+			return color.New(val)
+		}
+	}
+
+	if value, ok := c.(color.Attribute); ok {
+		return color.New(value)
 	}
 
 	return nil

@@ -156,22 +156,22 @@ func (s *Spinner) notifyHasUpdate() {
 	}
 }
 
-type SpinnerOptions struct {
-	SpinnerColor  colors.Color
-	CompleteColor colors.Color
-	ErrorColor    colors.Color
-	MessageColor  colors.Color
+type SpinnerOptions[T colors.ColorT] struct {
+	SpinnerColor  T
+	CompleteColor T
+	ErrorColor    T
+	MessageColor  T
 	Message       string
 	HasUpdate     chan bool
 }
 
 // NewSpinner creates a new spinner instance.
-func NewSpinner(options SpinnerOptions) *Spinner {
+func NewSpinner[T colors.ColorT](options SpinnerOptions[T]) *Spinner {
 	return &Spinner{
-		spinnerColor:  colors.GetColor(options.SpinnerColor),
-		completeColor: colors.GetColor(options.CompleteColor),
-		errorColor:    colors.GetColor(options.ErrorColor),
-		messageColor:  colors.GetColor(options.MessageColor),
+		spinnerColor:  colors.GetColor[T](options.SpinnerColor),
+		completeColor: colors.GetColor[T](options.CompleteColor),
+		errorColor:    colors.GetColor[T](options.ErrorColor),
+		messageColor:  colors.GetColor[T](options.MessageColor),
 		message:       options.Message,
 		hasUpdate:     options.HasUpdate,
 	}

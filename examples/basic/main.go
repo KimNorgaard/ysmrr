@@ -4,11 +4,12 @@ import (
 	"time"
 
 	"github.com/chelnak/ysmrr"
+	"github.com/chelnak/ysmrr/pkg/colors"
 )
 
 func main() {
 	// Create a new spinner manager
-	sm := ysmrr.NewSpinnerManager()
+	sm := ysmrr.NewSpinnerManager[colors.Color]()
 
 	// Set up our spinner
 	downloading := sm.AddSpinner("Downloading...")

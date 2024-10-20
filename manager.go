@@ -17,31 +17,31 @@ import (
 )
 
 // SpinnerManager manages spinners
-type SpinnerManager interface {
+type SpinnerManager[T colors.ColorT] interface {
 	AddSpinner(msg string) *Spinner
 	GetSpinners() []*Spinner
 	GetWriter() io.Writer
 	GetAnimation() []string
 	GetFrameDuration() time.Duration
-	GetSpinnerColor() colors.Color
-	GetErrorColor() colors.Color
-	GetCompleteColor() colors.Color
-	GetMessageColor() colors.Color
+	GetSpinnerColor() T
+	GetErrorColor() T
+	GetCompleteColor() T
+	GetMessageColor() T
 	Start()
 	Stop()
 	Running() bool
 }
 
-type spinnerManager struct {
+type spinnerManager[T colors.ColorT] struct {
 	spinners []*Spinner
 	mutex    sync.RWMutex
 
 	chars         []string
 	frameDuration time.Duration
-	spinnerColor  colors.Color
-	completeColor colors.Color
-	errorColor    colors.Color
-	messageColor  colors.Color
+	spinnerColor  T
+	completeColor T
+	errorColor    T
+	messageColor  T
 	writer        io.Writer
 	done          chan bool
 	running       bool
@@ -52,8 +52,8 @@ type spinnerManager struct {
 }
 
 // AddSpinner adds a new spinner to the manager.
-func (sm *spinnerManager) AddSpinner(message string) *Spinner {
-	opts := SpinnerOptions{
+func (sm *spinnerManager[T]) AddSpinner(message string) *Spinner {
+	opts := SpinnerOptions[T]{
 		Message:       message,
 		SpinnerColor:  sm.spinnerColor,
 		CompleteColor: sm.completeColor,
@@ -71,14 +71,14 @@ func (sm *spinnerManager) AddSpinner(message string) *Spinner {
 }
 
 // GetSpinners returns the spinners managed by the manager.
-func (sm *spinnerManager) GetSpinners() []*Spinner {
+func (sm *spinnerManager[T]) GetSpinners() []*Spinner {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
 	return sm.spinners
 }
 
 // Start signals that all spinners should start.
-func (sm *spinnerManager) Start() {
+func (sm *spinnerManager[T]) Start() {
 	sm.ticks = time.NewTicker(sm.frameDuration)
 	sm.running = true
 	go sm.render()
@@ -89,7 +89,7 @@ func (sm *spinnerManager) Start() {
 // frame for each spinner.
 // Finally the deferred tput command will ensure tat the cursor
 // is no longer hidden.
-func (sm *spinnerManager) Stop() {
+func (sm *spinnerManager[T]) Stop() {
 	if !sm.running {
 		return
 	}
@@ -106,43 +106,43 @@ func (sm *spinnerManager) Stop() {
 }
 
 // Running returns a boolean indicating whether the manager is running.
-func (sm *spinnerManager) Running() bool {
+func (sm *spinnerManager[T]) Running() bool {
 	return sm.running
 }
 
 // GetWriter returns the configured io.Writer.
-func (sm *spinnerManager) GetWriter() io.Writer {
+func (sm *spinnerManager[T]) GetWriter() io.Writer {
 	return sm.writer
 }
 
 // GetAnimation returns the current spinner animation as
 // a slice of strings.
-func (sm *spinnerManager) GetAnimation() []string {
+func (sm *spinnerManager[T]) GetAnimation() []string {
 	return sm.chars
 }
 
 // GetFrameDuration returns the configured frame duration.
-func (sm *spinnerManager) GetFrameDuration() time.Duration {
+func (sm *spinnerManager[T]) GetFrameDuration() time.Duration {
 	return sm.frameDuration
 }
 
 // GetSpinnerColor returns the configured color of the spinners.
-func (sm *spinnerManager) GetSpinnerColor() colors.Color {
+func (sm *spinnerManager[T]) GetSpinnerColor() T {
 	return sm.spinnerColor
 }
 
 // GetErrorColor returns the configured color of error icon.
-func (sm *spinnerManager) GetErrorColor() colors.Color {
+func (sm *spinnerManager[T]) GetErrorColor() T {
 	return sm.errorColor
 }
 
 // GetCompleteColor returns the configured color of completed icon.
-func (sm *spinnerManager) GetCompleteColor() colors.Color {
+func (sm *spinnerManager[T]) GetCompleteColor() T {
 	return sm.completeColor
 }
 
 // GetMessageColor returns the color of the message.
-func (sm *spinnerManager) GetMessageColor() colors.Color {
+func (sm *spinnerManager[T]) GetMessageColor() T {
 	return sm.messageColor
 }
 
@@ -156,7 +156,7 @@ func (sm *spinnerManager) GetMessageColor() colors.Color {
 //
 // The render method also emits tput strings to the terminal to set the
 // correct location of the cursor.
-func (sm *spinnerManager) render() {
+func (sm *spinnerManager[T]) render() {
 	// Prepare the screen.
 	tput.Civis(sm.writer)
 	defer tput.Cnorm(sm.writer)
@@ -177,7 +177,7 @@ outer:
 	}
 }
 
-func (sm *spinnerManager) renderFrame(animate bool) {
+func (sm *spinnerManager[T]) renderFrame(animate bool) {
 	if !sm.tty {
 		return
 	}
@@ -198,7 +198,7 @@ func (sm *spinnerManager) renderFrame(animate bool) {
 	}
 }
 
-func (sm *spinnerManager) setNextFrame() {
+func (sm *spinnerManager[T]) setNextFrame() {
 	sm.frame += 1
 	if sm.frame >= len(sm.chars) {
 		sm.frame = 0
@@ -226,15 +226,16 @@ func (sm *spinnerManager) setNextFrame() {
 //		WithFrameDuration(time.Millisecond * 100),
 //		WithSpinnerColor(colors.Red),
 //	)
-func NewSpinnerManager(options ...managerOption) SpinnerManager {
+func NewSpinnerManager[T colors.ColorT](options ...managerOption[T]) SpinnerManager[T] {
 	animationSpeed, animationChars := animations.GetAnimation(animations.Dots)
-	sm := &spinnerManager{
+
+	sm := &spinnerManager[T]{
 		chars:         animationChars,
 		frameDuration: animationSpeed,
-		spinnerColor:  colors.FgHiGreen,
-		errorColor:    colors.FgHiRed,
-		completeColor: colors.FgHiGreen,
-		messageColor:  colors.NoColor,
+		spinnerColor:  T(colors.FgHiGreen),
+		errorColor:    T(colors.FgHiRed),
+		completeColor: T(colors.FgHiGreen),
+		messageColor:  T(colors.NoColor),
 		writer:        getWriter(),
 		done:          make(chan bool),
 		hasUpdate:     make(chan bool),
@@ -262,13 +263,13 @@ func getWriter() io.Writer {
 }
 
 // Option represents a spinner manager option.
-type managerOption func(*spinnerManager)
+type managerOption[T colors.ColorT] func(*spinnerManager[T])
 
 // WithAnimation sets the animation used for the spinners.
 // Available spinner types can be found in the package github.com/chelnak/ysmrr/pkg/animations.
 // The default spinner animation is the Dots.
-func WithAnimation(a animations.Animation) managerOption {
-	return func(sm *spinnerManager) {
+func WithAnimation(a animations.Animation) managerOption[colors.Color] {
+	return func(sm *spinnerManager[colors.Color]) {
 		animationSpeed, animationChars := animations.GetAnimation(a)
 		sm.chars = animationChars
 		sm.frameDuration = animationSpeed
@@ -277,8 +278,8 @@ func WithAnimation(a animations.Animation) managerOption {
 
 // WithFrameDuration sets the duration of each frame.
 // The default duration is 250 milliseconds.
-func WithFrameDuration(d time.Duration) managerOption {
-	return func(sm *spinnerManager) {
+func WithFrameDuration(d time.Duration) managerOption[colors.Color] {
+	return func(sm *spinnerManager[colors.Color]) {
 		sm.frameDuration = d
 	}
 }
@@ -286,8 +287,8 @@ func WithFrameDuration(d time.Duration) managerOption {
 // WithSpinnerColor sets the color of the spinners.
 // Available colors can be found in the package github.com/chelnak/ysmrr/pkg/colors.
 // The default color is FgHiGreen.
-func WithSpinnerColor(c colors.Color) managerOption {
-	return func(sm *spinnerManager) {
+func WithSpinnerColor[T colors.ColorT](c T) managerOption[T] {
+	return func(sm *spinnerManager[T]) {
 		sm.spinnerColor = c
 	}
 }
@@ -295,8 +296,8 @@ func WithSpinnerColor(c colors.Color) managerOption {
 // WithErrorColor sets the color of the error icon.
 // Available colors can be found in the package github.com/chelnak/ysmrr/pkg/colors.
 // The default color is FgHiRed.
-func WithErrorColor(c colors.Color) managerOption {
-	return func(sm *spinnerManager) {
+func WithErrorColor[T colors.ColorT](c T) managerOption[T] {
+	return func(sm *spinnerManager[T]) {
 		sm.errorColor = c
 	}
 }
@@ -304,8 +305,8 @@ func WithErrorColor(c colors.Color) managerOption {
 // WithCompleteColor sets the color of the complete icon.
 // Available colors can be found in the package github.com/chelnak/ysmrr/pkg/colors.
 // The default color is FgHiGreen.
-func WithCompleteColor(c colors.Color) managerOption {
-	return func(sm *spinnerManager) {
+func WithCompleteColor[T colors.ColorT](c T) managerOption[T] {
+	return func(sm *spinnerManager[T]) {
 		sm.completeColor = c
 	}
 }
@@ -313,8 +314,8 @@ func WithCompleteColor(c colors.Color) managerOption {
 // WithMessageColor sets the color of the message.
 // Available colors can be found in the package github.com/chelnak/ysmrr/pkg/colors.
 // The default color is NoColor.
-func WithMessageColor(c colors.Color) managerOption {
-	return func(sm *spinnerManager) {
+func WithMessageColor[T colors.ColorT](c T) managerOption[T] {
+	return func(sm *spinnerManager[T]) {
 		sm.messageColor = c
 	}
 }
@@ -322,8 +323,8 @@ func WithMessageColor(c colors.Color) managerOption {
 // WithWriter sets the writer used for the spinners.
 // The writer can be anything that implements the io.Writer interface.
 // The default writer is os.Stdout.
-func WithWriter(w io.Writer) managerOption {
-	return func(sm *spinnerManager) {
+func WithWriter(w io.Writer) managerOption[colors.Color] {
+	return func(sm *spinnerManager[colors.Color]) {
 		sm.writer = w
 	}
 }

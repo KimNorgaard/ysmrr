@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/chelnak/ysmrr"
+	"github.com/chelnak/ysmrr/pkg/colors"
 )
 
 type App struct {
-	spinnerManager ysmrr.SpinnerManager
+	spinnerManager ysmrr.SpinnerManager[colors.Color]
 }
 
 func (a *App) doMoreWork() {
@@ -37,7 +38,7 @@ func (a *App) Stop() {
 
 func NewApp() *App {
 	return &App{
-		spinnerManager: ysmrr.NewSpinnerManager(),
+		spinnerManager: ysmrr.NewSpinnerManager[colors.Color](),
 	}
 }
 

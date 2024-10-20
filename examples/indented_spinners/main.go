@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/chelnak/ysmrr"
+	"github.com/chelnak/ysmrr/pkg/colors"
 )
 
 func main() {
 	// Create a new spinner manager
-	sm := ysmrr.NewSpinnerManager()
+	sm := ysmrr.NewSpinnerManager[colors.Color]()
 
 	// Setup a group of spinners
 	spinners := make(map[int]*ysmrr.Spinner, 5)
